@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Planificateur BD</title>
+  <style>
+    body {
+      font-family: monospace;
+      margin: 0;
+      padding: 1em;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      display: flex;
+      gap: 2em;
+    }
+    .sidebar {
+      width: 30%;
+      background: #2d2d2d;
+      padding: 1em;
+      border: 1px solid #444;
+      height: 95vh;
+      overflow-y: auto;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .objectives textarea {
+      width: 100%;
+      height: 5em;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 0.5em;
+    }
+    .week {
+      margin-top: 1em;
+      font-family: monospace;
+      white-space: pre;
+      background: #2d2d2d;
+      border: 1px solid #555;
+      padding: 1em;
+    }
+    .day-block {
+      margin-bottom: 1em;
+    }
+    .day-block textarea {
+      width: 100%;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 0.5em;
+    }
+   
+    .add-btn {
+      margin-left: 0.5em;
+      background: #333;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 0.2em 0.5em;
+      cursor: pointer;
+    }
+    .calendar-nav {
+      margin-top: 1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  .month-view {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5em;
+  margin-top: 2em;
+  height: auto; /* laisse la hauteur automatique */
+}
+
+.week-banner-overlay {
+  background-color: rgba(255, 215, 0, 0.03); /* doré translucide */
+  color: #ffffff;
+  text-shadow: #fc0 1px 0 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: end;
+  padding-left: 0.5em;
+  pointer-events: none; /* laisser passer les clics aux cases dessous */
+  z-index: 10;
+  font-size: 0.9em;
+  border-radius: 4px;
+}
+
+    .month-day {
+      border: 1px solid #555;
+      padding: 0.5em;
+      background: #2d2d2d;
+      height: 5em;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .week-banner {
+      grid-column: span 7;
+      background-color: #444;
+      padding: 0.3em;
+      font-weight: bold;
+      text-align: center;
+      color: #ffd700;
+    }
+    button {
+      background: #333;
+      color: #d4d4d4;
+      border: 1px solid #555;
+      padding: 0.5em;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div style="margin-bottom: 1em;">
+      <button onclick="exportData()">📤 Exporter</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)" />
+      <button onclick="document.getElementById('import-file').click()">📥 Importer</button>
+    </div>
+    </div>
+  <div class="content">
+    <div class="calendar-nav">
+      <button onclick="changeWeek(-1)">&lt; Semaine précédente</button>
+      <h3 id="week-label"></h3>
+      <button onclick="changeWeek(1)">Semaine suivante &gt;</button>
+    </div>
+    <div class="objectives">
+      <h3>Objectifs de la semaine</h3>
+      <textarea id="weekly-goals"></textarea>
+    </div>
+    <div class="week" id="week"></div>
+    <div>
+      <h3>Vue mensuelle</h3>
+      <div class="calendar-nav">
+        <button onclick="changeMonth(-1)">&lt; Mois précédent</button>
+        <h3 id="month-label"></h3>
+        <button onclick="changeMonth(1)">Mois suivant &gt;</button>
+      </div>
+      <div class="month-view" id="month-view"></div>
+    </div>
+  </div>
+  <script>
+  const week = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+    let currentWeekStart = getMonday(new Date());
+    let currentMonthDate = new Date();
+
+    function getMonday(d) {
+      d = new Date(d);
+      const day = d.getDay(), diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(d.setDate(diff));
+    }
+
+    function formatDate(date) {
+      return new Date(date).toLocaleDateString('fr-FR').replace(/\//g, '-');
+    }
+
+    function changeWeek(offset) {
+      currentWeekStart.setDate(currentWeekStart.getDate() + offset * 7);
+      loadWeek();
+    }
+
+    function changeMonth(offset) {
+      currentMonthDate.setMonth(currentMonthDate.getMonth() + offset);
+      renderMonth();
+    }
+
+    function loadData() {
+      loadWeek();
+      renderMonth();
+    }
+
+    function loadWeek() {
+      document.getElementById("week-label").textContent =
+        `Semaine du ${formatDate(currentWeekStart)}`;
+
+      const weeklyGoals = document.getElementById("weekly-goals");
+      const weekKey = formatDate(currentWeekStart);
+      weeklyGoals.value = localStorage.getItem(`weekly-goals-${weekKey}`) || "";
+      weeklyGoals.onblur = () => {
+        localStorage.setItem(`weekly-goals-${weekKey}`, weeklyGoals.value);
+        renderMonth();
+      };
+
+      const weekEl = document.getElementById("week");
+      weekEl.innerHTML = "";
+
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(currentWeekStart);
+        date.setDate(date.getDate() + i);
+        const dateStr = formatDate(date);
+
+        const container = document.createElement("div");
+        container.className = "day-block";
+
+        const label = document.createElement("div");
+        label.textContent = `+------- ${week[i]} ${dateStr} -------+`;
+
+        const textarea = document.createElement("textarea");
+        textarea.rows = 4;
+        textarea.value = localStorage.getItem("day-" + dateStr) || "";
+        textarea.onblur = () => {
+          localStorage.setItem("day-" + dateStr, textarea.value);
+          renderMonth();
+        };
+
+        container.appendChild(label);
+        container.appendChild(textarea);
+        weekEl.appendChild(container);
+      }
+    }
+
+   function renderMonth() {
+  const view = document.getElementById("month-view");
+  view.innerHTML = "";
+  const year = currentMonthDate.getFullYear();
+  const month = currentMonthDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const monthStart = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+  document.getElementById("month-label").textContent =
+    `${firstDay.toLocaleString('fr-FR', { month: 'long' })} ${year}`;
+
+  const today = new Date(firstDay);
+  today.setDate(today.getDate() - monthStart);
+
+  // Stocker les éléments jours dans un tableau par semaine pour positionner bannière plus tard
+  const weekRows = [];
+
+  for (let w = 0; w < 6; w++) {
+    const weekCells = [];
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + w * 7 + d);
+      const cell = document.createElement("div");
+      cell.className = "month-day";
+      if (date.getMonth() !== month) {
+        cell.style.opacity = "0.3";
+      }
+      cell.onclick = () => {
+        currentWeekStart = getMonday(date);
+        loadWeek();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+
+      const dateStr = formatDate(date);
+      const notes = localStorage.getItem("day-" + dateStr);
+
+      const number = document.createElement("div");
+      number.textContent = date.getDate();
+      number.style.fontWeight = "bold";
+      cell.appendChild(number);
+
+      if (notes) {
+        const noteEl = document.createElement("div");
+        noteEl.style.fontSize = "0.75em";
+        noteEl.style.marginTop = "0.3em";
+        noteEl.textContent = notes.slice(0, 60);
+        cell.appendChild(noteEl);
+      }
+
+      view.appendChild(cell);
+      weekCells.push(cell);
+    }
+    weekRows.push(weekCells);
+  }
+
+  // Après avoir inséré les cases, on ajoute les bandeaux par semaine
+  for (let w = 0; w < 6; w++) {
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + w * 7);
+    const weekKey = formatDate(getMonday(monday));
+    const goalText = localStorage.getItem(`weekly-goals-${weekKey}`);
+
+    if (goalText) {
+      // On récupère la position de la première case de la semaine
+      const firstCell = weekRows[w][0];
+      const rect = firstCell.getBoundingClientRect();
+      const containerRect = view.getBoundingClientRect();
+
+      // Calculer top relatif à la grille
+      const top = firstCell.offsetTop;
+
+      const banner = document.createElement("div");
+      banner.className = "week-banner-overlay";
+      banner.textContent = `${goalText.slice(0, 60)}`;
+
+      // Positionner la bannière en overlay sur la ligne
+      banner.style.position = "absolute";
+      banner.style.top = top + "px";
+      banner.style.left = "0";
+      banner.style.width = "100%";
+      banner.style.height = firstCell.offsetHeight + "px";
+
+      view.appendChild(banner);
+    }
+  }
+}
+
+    loadData();
+    function exportData() {
+  const data = {
+    days: {},
+    weeks: {}
+  };
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("day-")) data.days[key] = localStorage.getItem(key);
+    if (key.startsWith("weekly-goals-")) data.weeks[key] = localStorage.getItem(key);
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "planning.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.days) for (const [k, v] of Object.entries(data.days)) localStorage.setItem(k, v);
+      if (data.weeks) for (const [k, v] of Object.entries(data.weeks)) localStorage.setItem(k, v);
+      loadData(); // recharge l'affichage
+      alert("Planning importé avec succès !");
+    } catch (err) {
+      alert("Erreur lors de l'import : fichier invalide");
+    }
+  };
+  reader.readAsText(file);
+}
+
+  </script>
+</body>
+</html>
