@@ -16,7 +16,7 @@
       gap: 2em;
     }
     .sidebar {
-      width: 30%;
+      width: 40%;
       background: #2d2d2d;
       padding: 1em;
       border: 1px solid #444;
@@ -124,9 +124,7 @@
       <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)" />
       <button onclick="document.getElementById('import-file').click()">📥 Importer</button>
     </div>
-    </div>
-  <div class="content">
-    <div class="calendar-nav">
+     <div class="calendar-nav">
       <button onclick="changeWeek(-1)">&lt; Semaine précédente</button>
       <h3 id="week-label"></h3>
       <button onclick="changeWeek(1)">Semaine suivante &gt;</button>
@@ -136,6 +134,8 @@
       <textarea id="weekly-goals"></textarea>
     </div>
     <div class="week" id="week"></div>
+    </div>
+  <div class="content">
     <div>
       <h3>Vue mensuelle</h3>
       <div class="calendar-nav">
