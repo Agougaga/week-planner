@@ -16,6 +16,9 @@
       display: flex;
       gap: 2em;
     }
+    a {
+      color: aqua;
+    }
     .sidebar {
       width: 40%;
       background: #2d2d2d;
@@ -29,6 +32,15 @@
       display: flex;
       flex-direction: column;
     }
+    .links {
+       margin-top: 1em;
+      background: #2d2d2d;
+      padding: 1em;
+      border: 1px solid #444;
+      overflow-y: auto;
+      
+    }
+
     .objectives textarea {
       width: 100%;
       height: 5em;
@@ -120,11 +132,6 @@
 </head>
 <body>
   <div class="sidebar">
-    <div style="margin-bottom: 1em;">
-      <button onclick="exportData()">📤 Exporter</button>
-      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)" />
-      <button onclick="document.getElementById('import-file').click()">📥 Importer</button>
-    </div>
      <div class="calendar-nav">
       <button onclick="changeWeek(-1)">&lt; Semaine précédente</button>
       <h3 id="week-label"></h3>
@@ -146,7 +153,22 @@
       </div>
       <div class="month-view" id="month-view"></div>
     </div>
+  <div class="links">
+    <h3>Liens :</h3>
+    <a href="https://docs.google.com/document/d/1Kj74RFpJW3QjzkIuS313pNx6OuPkyzVUpfB8NxmBIlw/edit?pli=1&tab=t.0"  target="_blank">Scénario</a>
+    <a href="https://docs.google.com/document/d/1Kj74RFpJW3QjzkIuS313pNx6OuPkyzVUpfB8NxmBIlw/edit?usp=sharing"  target="_blank">Retakes</a>
+    <a href="https://docs.google.com/spreadsheets/d/1j7yWlmcioH3BY8x4QXNbyIxtor8FSudqHPqY0I44zQ0/edit?usp=sharing"  target="_blank">Avancement</a>
+    <a href="https://drive.google.com/drive/folders/1rnZt3UB8Ipdlx53T57x_Aji7DEH0dV0S?usp=drive_link"  target="_blank">Drive</a> 
   </div>
+    <div style="margin-top: 1em;">
+      <button onclick="exportData()">📤 Exporter</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)" />
+      <button onclick="document.getElementById('import-file').click()">📥 Importer</button>
+    </div>
+  </div>
+
+
+
   <script>
   const week = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
     let currentWeekStart = getMonday(new Date());
